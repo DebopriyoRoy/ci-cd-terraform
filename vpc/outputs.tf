@@ -3,12 +3,12 @@
 # ==============================================================================
 output "vpc_id" {
   description = "ID of the VPC."
-  value       = aws_vpc.this.id
+  value       = aws_vpc.vpc_inst.id
 }
 
 output "vpc_cidr" {
   description = "Primary IPv4 CIDR block of the VPC."
-  value       = aws_vpc.this.cidr_block
+  value       = aws_vpc.vpc_inst.cidr_block
 }
 
 # ==============================================================================
@@ -16,7 +16,7 @@ output "vpc_cidr" {
 # ==============================================================================
 output "internet_gateway_id" {
   description = "ID of the Internet Gateway."
-  value       = aws_internet_gateway.this.id
+  value       = aws_internet_gateway.vpc_inst.id
 }
 
 # ==============================================================================
