@@ -11,10 +11,29 @@ provider "aws" {
   region = var.aws_region
 }
 
-module "ec2_instance" {
-  source  = "./ec2"
-  }
+# ==============================================================================
+# VPC MODULE — creates crt-from-jenkins VPC + subnets + IGW + route tables
+#              + S3 endpoint + security group
+# ==============================================================================
 module "vpc_inst" {
-  source  = "./vpc"
-  }
+  source     = "./vpc"
+  aws_region = var.aws_region
+}
 
+# ==============================================================================
+# IAM MODULE — creates ec2-from-jenkins role + instance profile
+# ==============================================================================
+module "iam" {
+  source = "./iam"
+}
+
+# ==============================================================================
+# EC2 MODULE — creates crtd-from-jenkins instance wired into VPC + IAM
+# ==============================================================================
+module "ec2_instance" {
+  source = "./ec2"
+
+  subnet_id              = module.vpc_inst.public_subnet_ids_list[0]
+  vpc_security_group_ids = [module.vpc_inst.ec2_security_group_id]
+  iam_instance_profile   = module.iam.instance_profile_name
+}
