@@ -1,5 +1,5 @@
 # ==============================================================================
-# VPC
+# VPC — crt-from-jenkins
 # ==============================================================================
 resource "aws_vpc" "vpc_inst" {
   cidr_block           = var.vpc_cidr
@@ -12,8 +12,7 @@ resource "aws_vpc" "vpc_inst" {
 }
 
 # ==============================================================================
-# INTERNET GATEWA
-# ci-cd-igw — shown under Network Connections in the console
+# INTERNET GATEWAY — crt-from-jenkins-igw
 # ==============================================================================
 resource "aws_internet_gateway" "vpc_inst" {
   vpc_id = aws_vpc.vpc_inst.id
@@ -25,8 +24,8 @@ resource "aws_internet_gateway" "vpc_inst" {
 
 # ==============================================================================
 # PUBLIC SUBNETS
-# ci-cd-subnet-public1-us-east-1a  (us-east-1a)
-# ci-cd-subnet-public2-us-east-1b  (us-east-1b)
+# crt-from-jenkins-subnet-public1-us-east-1a
+# crt-from-jenkins-subnet-public2-us-east-1b
 # ==============================================================================
 resource "aws_subnet" "public" {
   for_each = { for s in var.public_subnets : s.name => s }
@@ -44,8 +43,8 @@ resource "aws_subnet" "public" {
 
 # ==============================================================================
 # PRIVATE SUBNETS
-# ci-cd-subnet-private1-us-east-1a  (us-east-1a)
-# ci-cd-subnet-private2-us-east-1b  (us-east-1b)
+# crt-from-jenkins-subnet-private1-us-east-1a
+# crt-from-jenkins-subnet-private2-us-east-1b
 # ==============================================================================
 resource "aws_subnet" "private" {
   for_each = { for s in var.private_subnets : s.name => s }
@@ -61,8 +60,8 @@ resource "aws_subnet" "private" {
 }
 
 # ==============================================================================
-# PUBLIC ROUTE TABLE  →  ci-cd-rtb-public
-# Single table shared by both public subnets; routes egress via the IGW
+# PUBLIC ROUTE TABLE — crt-from-jenkins-rtb-public
+# Routes all egress through the Internet Gateway
 # ==============================================================================
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.vpc_inst.id
@@ -85,9 +84,9 @@ resource "aws_route_table_association" "public" {
 }
 
 # ==============================================================================
-# PRIVATE ROUTE TABLES  (one per AZ — isolated, local traffic only)
-# ci-cd-rtb-private1-us-east-1a
-# ci-cd-rtb-private2-us-east-1b
+# PRIVATE ROUTE TABLES — one per AZ, local traffic only
+# crt-from-jenkins-rtb-crt-from-jenkins-subnet-private1-us-east-1a
+# crt-from-jenkins-rtb-crt-from-jenkins-subnet-private2-us-east-1b
 # ==============================================================================
 resource "aws_route_table" "private" {
   for_each = { for s in var.private_subnets : s.name => s }
@@ -107,10 +106,9 @@ resource "aws_route_table_association" "private" {
 }
 
 # ==============================================================================
-# S3 VPC ENDPOINT  →  ci-cd-vpce-s3
-# Gateway type (free). Attached to every route table so all subnets reach
-# S3 over the AWS backbone without touching the public internet.
-# Shown under Network Connections in the console alongside the IGW.
+# S3 VPC ENDPOINT — crt-from-jenkins-vpce-s3
+# Gateway type (free). Keeps S3 traffic on the AWS backbone.
+# Attached to all route tables — public and private.
 # ==============================================================================
 resource "aws_vpc_endpoint" "s3" {
   vpc_id            = aws_vpc.vpc_inst.id
@@ -124,5 +122,53 @@ resource "aws_vpc_endpoint" "s3" {
 
   tags = merge(var.tags, {
     Name = "${var.vpc_name}-vpce-s3"
+  })
+}
+
+# ==============================================================================
+# SECURITY GROUP — crt-from-jenkins-ec2-sg
+# Attached to the EC2 instance by the root module.
+# Ingress: SSH (22), HTTP (80), HTTPS (443)
+# Egress:  all outbound allowed
+# ==============================================================================
+resource "aws_security_group" "ec2" {
+  name        = "${var.vpc_name}-ec2-sg"
+  description = "Security group for the crtd-from-jenkins EC2 instance"
+  vpc_id      = aws_vpc.vpc_inst.id
+
+  ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = var.allowed_ssh_cidrs
+  }
+
+  ingress {
+    description = "HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow all outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(var.tags, {
+    Name = "${var.vpc_name}-ec2-sg"
   })
 }

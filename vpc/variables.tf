@@ -1,7 +1,7 @@
 variable "vpc_name" {
-  description = "Name tag for the VPC; also used as a prefix for all child resources."
+  description = "Name of the VPC; used as prefix for all child resources."
   type        = string
-  default     = "Terraform-ci-cd-vpc"
+  default     = "crt-from-jenkins"
 }
 
 variable "vpc_cidr" {
@@ -17,10 +17,9 @@ variable "aws_region" {
 }
 
 # ------------------------------------------------------------------------------
-# Public subnets
-# Mirrors the console:
-#   ci-cd-subnet-public1-us-east-1a  →  us-east-1a
-#   ci-cd-subnet-public2-us-east-1b  →  us-east-1b
+# Public subnets — named to match the resource map in the image
+# crt-from-jenkins-subnet-public1-us-east-1a  →  us-east-1a
+# crt-from-jenkins-subnet-public2-us-east-1b  →  us-east-1b
 # ------------------------------------------------------------------------------
 variable "public_subnets" {
   description = "List of public subnet definitions. Each object needs name, cidr, and az."
@@ -31,12 +30,12 @@ variable "public_subnets" {
   }))
   default = [
     {
-      name = "ci-cd-subnet-public1-us-east-1a"
+      name = "crt-from-jenkins-subnet-public1-us-east-1a"
       cidr = "10.0.1.0/24"
       az   = "us-east-1a"
     },
     {
-      name = "ci-cd-subnet-public2-us-east-1b"
+      name = "crt-from-jenkins-subnet-public2-us-east-1b"
       cidr = "10.0.2.0/24"
       az   = "us-east-1b"
     }
@@ -45,9 +44,8 @@ variable "public_subnets" {
 
 # ------------------------------------------------------------------------------
 # Private subnets
-# Mirrors the console:
-#   ci-cd-subnet-private1-us-east-1a  →  us-east-1a
-#   ci-cd-subnet-private2-us-east-1b  →  us-east-1b
+# crt-from-jenkins-subnet-private1-us-east-1a  →  us-east-1a
+# crt-from-jenkins-subnet-private2-us-east-1b  →  us-east-1b
 # ------------------------------------------------------------------------------
 variable "private_subnets" {
   description = "List of private subnet definitions. Each object needs name, cidr, and az."
@@ -58,20 +56,31 @@ variable "private_subnets" {
   }))
   default = [
     {
-      name = "ci-cd-subnet-private1-us-east-1a"
+      name = "crt-from-jenkins-subnet-private1-us-east-1a"
       cidr = "10.0.3.0/24"
       az   = "us-east-1a"
     },
     {
-      name = "ci-cd-subnet-private2-us-east-1b"
+      name = "crt-from-jenkins-subnet-private2-us-east-1b"
       cidr = "10.0.4.0/24"
       az   = "us-east-1b"
     }
   ]
 }
 
+# ------------------------------------------------------------------------------
+# SSH access — restricted to your IP only
+# Only 193.149.173.67 can SSH into the EC2 instance on port 22.
+# If your IP changes, update this value and re-run the pipeline.
+# ------------------------------------------------------------------------------
+variable "allowed_ssh_cidrs" {
+  description = "CIDR blocks allowed to SSH into the EC2 instance."
+  type        = list(string)
+  default     = ["193.149.173.67/32"]
+}
+
 variable "tags" {
-  description = "Additional tags merged onto every resource in this module."
+  description = "Tags merged onto every resource in this module."
   type        = map(string)
   default = {
     Project   = "ci-cd"

@@ -1,6 +1,3 @@
-# ==============================================================================
-# VPC
-# ==============================================================================
 output "vpc_id" {
   description = "ID of the VPC."
   value       = aws_vpc.vpc_inst.id
@@ -11,17 +8,11 @@ output "vpc_cidr" {
   value       = aws_vpc.vpc_inst.cidr_block
 }
 
-# ==============================================================================
-# INTERNET GATEWAY
-# ==============================================================================
 output "internet_gateway_id" {
   description = "ID of the Internet Gateway."
   value       = aws_internet_gateway.vpc_inst.id
 }
 
-# ==============================================================================
-# SUBNETS
-# ==============================================================================
 output "public_subnet_ids" {
   description = "Map of public subnet name → subnet ID."
   value       = { for k, s in aws_subnet.public : k => s.id }
@@ -33,7 +24,7 @@ output "private_subnet_ids" {
 }
 
 output "public_subnet_ids_list" {
-  description = "Ordered list of public subnet IDs (convenient for ALB, ASG, EKS, etc.)."
+  description = "Ordered list of public subnet IDs."
   value       = [for s in aws_subnet.public : s.id]
 }
 
@@ -42,9 +33,6 @@ output "private_subnet_ids_list" {
   value       = [for s in aws_subnet.private : s.id]
 }
 
-# ==============================================================================
-# ROUTE TABLES
-# ==============================================================================
 output "public_route_table_id" {
   description = "ID of the shared public route table."
   value       = aws_route_table.public.id
@@ -55,10 +43,12 @@ output "private_route_table_ids" {
   value       = { for k, rt in aws_route_table.private : k => rt.id }
 }
 
-# ==============================================================================
-# VPC ENDPOINT
-# ==============================================================================
 output "s3_vpc_endpoint_id" {
   description = "ID of the S3 Gateway VPC endpoint."
   value       = aws_vpc_endpoint.s3.id
+}
+
+output "ec2_security_group_id" {
+  description = "ID of the EC2 security group — consumed by the ec2 module."
+  value       = aws_security_group.ec2.id
 }
