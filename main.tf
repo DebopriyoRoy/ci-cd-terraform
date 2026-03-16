@@ -37,3 +37,11 @@ module "ec2_instance" {
   vpc_security_group_ids = [module.vpc_inst.ec2_security_group_id]
   iam_instance_profile   = module.iam.instance_profile_name
 }
+# ==============================================================================
+# S3 MODULE — creates crt-from-jenkins-bucket
+# Private, encrypted, versioned bucket for CI/CD artifacts and app data.
+# Accessible from EC2 via the S3 VPC endpoint — no public internet needed.
+# ==============================================================================
+module "s3" {
+  source = "./s3"
+}
