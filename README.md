@@ -1,67 +1,158 @@
 # Terraform CI/CD Infrastructure
 
-Provisions AWS infrastructure via Jenkins. Three modules, all wired together.
+Provisions AWS infrastructure using **Terraform executed from Jenkins**.
+The infrastructure is modular and includes **VPC networking, IAM roles,
+EC2 compute, and an S3 storage layer** for artifacts and infrastructure
+data.
 
-## Resources created
+------------------------------------------------------------------------
 
-| Module | Resource | Name in AWS |
-|--------|----------|-------------|
-| `vpc`  | VPC | `crt-from-jenkins` |
-| `vpc`  | Public subnets | `crt-from-jenkins-subnet-public1-us-east-1a` / `...-1b` |
-| `vpc`  | Private subnets | `crt-from-jenkins-subnet-private1-us-east-1a` / `...-1b` |
-| `vpc`  | Internet Gateway | `crt-from-jenkins-igw` |
-| `vpc`  | Public route table | `crt-from-jenkins-rtb-public` |
-| `vpc`  | Private route tables | `crt-from-jenkins-rtb-<subnet-name>` × 2 |
-| `vpc`  | S3 VPC endpoint | `crt-from-jenkins-vpce-s3` |
-| `vpc`  | Security group | `crt-from-jenkins-ec2-sg` |
-| `iam`  | IAM role + instance profile | `ec2-from-jenkins` |
-| `ec2`  | EC2 instance | `crtd-from-jenkins` |
+# Architecture Overview
 
-## Prerequisites
+The pipeline provisions the following components:
 
-1. Store AWS credentials in Jenkins as two **Secret text** credentials:
-   - ID: `aws-access-key-id`
-   - ID: `aws-secret-access-key`
+Jenkins │ ▼ Terraform │ ├── VPC Module │ ├── VPC │ ├── Public Subnets │
+├── Private Subnets │ ├── Internet Gateway │ ├── Route Tables │ └── S3
+VPC Endpoint │ ├── IAM Module │ └── EC2 Role + Instance Profile │ ├──
+EC2 Module │ └── Application Instance │ └── S3 Module └── Secure
+artifact + state storage
 
-2. Update your Jenkinsfile to export them correctly:
-   ```groovy
-   environment {
-     AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
-     AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
-   }
-   ```
+------------------------------------------------------------------------
 
-## Jenkins pipeline
+# Resources Created
 
-```groovy
+  ----------------------------------------------------------------------------------------------
+  Module                  Resource                Name in AWS
+  ----------------------- ----------------------- ----------------------------------------------
+  vpc                     VPC                     crt-from-jenkins
+
+  vpc                     Public subnets          crt-from-jenkins-subnet-public1-us-east-1a,
+                                                  ...-1b
+
+  vpc                     Private subnets         crt-from-jenkins-subnet-private1-us-east-1a,
+                                                  ...-1b
+
+  vpc                     Internet Gateway        crt-from-jenkins-igw
+
+  vpc                     Public route table      crt-from-jenkins-rtb-public
+
+  vpc                     Private route tables    crt-from-jenkins-rtb-private\*
+
+  vpc                     S3 VPC endpoint         crt-from-jenkins-vpce-s3
+
+  vpc                     Security group          crt-from-jenkins-ec2-sg
+
+  iam                     IAM role + instance     ec2-from-jenkins
+                          profile                 
+
+  ec2                     EC2 instance            crtd-from-jenkins
+
+  s3                      S3 bucket               crt-from-jenkins-bucket
+
+  s3                      Versioning              Enabled
+
+  s3                      Server-side encryption  AES-256
+
+  s3                      Public access block     Enabled
+
+  s3                      Lifecycle policy        Archive after 30 days, delete after 90
+  ----------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+# S3 Bucket Details
+
+The Terraform configuration provisions a **secure S3 bucket designed for
+CI/CD operations**.
+
+Security: - Private bucket (no public access) - Public access fully
+blocked - AES-256 server-side encryption
+
+Data Protection: - Object versioning enabled - Prevents accidental
+overwrites - Allows rollback of CI/CD artifacts
+
+Cost Optimization: Lifecycle rule automatically: - Moves non-current
+versions to STANDARD_IA after 30 days - Deletes non-current objects
+after 90 days
+
+------------------------------------------------------------------------
+
+# Prerequisites
+
+Configure AWS credentials in Jenkins.
+
+Create two secret text credentials:
+
+aws-access-key-id aws-secret-access-key
+
+------------------------------------------------------------------------
+
+# Jenkins Pipeline
+
+``` groovy
 pipeline {
     agent any
+
     environment {
         AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
     }
+
     stages {
+
         stage('Checkout') {
             steps {
-                checkout scmGit(branches: [[name: '*/main']], extensions: [],
-                  userRemoteConfigs: [[url: 'https://github.com/DebopriyoRoy/ci-cd-terraform.git']])
+                checkout scmGit(
+                    branches: [[name: '*/main']],
+                    extensions: [],
+                    userRemoteConfigs: [[url: 'https://github.com/DebopriyoRoy/ci-cd-terraform.git']]
+                )
             }
         }
-        stage('Init')  { steps { sh 'terraform init'  } }
-        stage('Plan')  { steps { sh 'terraform plan'  } }
-        stage('Apply') { steps { sh 'terraform apply -auto-approve' } }
+
+        stage('Terraform Init') {
+            steps {
+                sh 'terraform init'
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                sh 'terraform plan'
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                sh 'terraform apply -auto-approve'
+            }
+        }
     }
 }
 ```
 
-## Resource map (matches AWS console)
+------------------------------------------------------------------------
 
-```
-VPC                    Subnets (4)                          Route tables (4)              Network Connections (2)
-crt-from-jenkins  →   us-east-1a:                      →   crt-from-jenkins-rtb-public   crt-from-jenkins-igw
-                         public1-us-east-1a                 crt-from-jenkins-rtb-private1  crt-from-jenkins-vpce-s3
-                         private1-us-east-1a                crt-from-jenkins-rtb-private2
-                       us-east-1b:
-                         public2-us-east-1b
-                         private2-us-east-1b
-```
+# Infrastructure Map
+
+VPC crt-from-jenkins │ ├── Public Subnets │ ├── public1-us-east-1a │ └──
+public2-us-east-1b │ ├── Private Subnets │ ├── private1-us-east-1a │ └──
+private2-us-east-1b │ ├── Route Tables │ ├── public │ └── private │ ├──
+Internet Gateway │ ├── S3 VPC Endpoint │ ├── EC2 Instance │ └── S3
+Bucket crt-from-jenkins-bucket ├── Versioning ├── Encryption └──
+Lifecycle Policy
+
+------------------------------------------------------------------------
+
+# Purpose of This Infrastructure
+
+This setup demonstrates a **production-style DevOps workflow**:
+
+-   Jenkins orchestrates infrastructure deployment
+-   Terraform provisions AWS resources
+-   Secure networking and IAM are configured
+-   S3 stores artifacts and infrastructure data
+-   EC2 runs the application workload
+
+This architecture reflects real-world CI/CD infrastructure used in
+enterprise cloud environments.
