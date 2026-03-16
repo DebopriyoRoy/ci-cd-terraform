@@ -29,7 +29,7 @@ resource "aws_iam_role" "this" {
 # AWS MANAGED POLICY ATTACHMENTS
 # Visible in the console as "AWS managed" type:
 #   - AdministratorAccess
-#   - AmazonEC2ContainerServiceforEC2Role
+#   - AmazonEC2ContainerServiceRole
 #   - AmazonEC2FullAccess
 #   - AmazonEKSClusterPolicy
 #   - AmazonSSMManagedInstanceCore

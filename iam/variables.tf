@@ -15,7 +15,7 @@ variable "managed_policy_arns" {
   type        = list(string)
   default = [
     "arn:aws:iam::aws:policy/AdministratorAccess",
-    "arn:aws:iam::aws:policy/AmazonEC2ContainerServiceforEC2Role",
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerServiceRole",
     "arn:aws:iam::aws:policy/AmazonEC2FullAccess",
     "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy",
     "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
