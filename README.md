@@ -150,6 +150,57 @@ pipeline{
 
 ```
 
+-------------------------------------------------------------------------
+# Jenkins Pipeline for deletion of the created resources
+
+``` groovy
+
+pipeline {
+    agent any
+    environment {
+        cred = credentials('aws-key')
+    }
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scmGit(
+                    branches: [[name: '*/main']],
+                    extensions: [],
+                    userRemoteConfigs: [[url: 'https://github.com/DebopriyoRoy/ci-cd-terraform.git']]
+                )
+            }
+        }
+
+        stage('Init') {
+            steps {
+                sh 'terraform init'
+            }
+        }
+
+        stage('Destroy') {
+            steps {
+                timeout(time: 15, unit: 'MINUTES') {
+                    sh 'terraform destroy -auto-approve'
+                }
+            }
+        }
+
+    }
+
+    post {
+        success {
+            echo 'All infrastructure destroyed successfully.'
+        }
+        failure {
+            echo 'Destroy failed. Check the AWS console manually for any remaining resources.'
+        }
+    }
+}
+
+```
+
+
 ------------------------------------------------------------------------
 
 # Infrastructure Map
