@@ -89,45 +89,65 @@ after 90 days
 # Jenkins Pipeline
 
 ``` groovy
-pipeline {
+pipeline{
     agent any
-
-    environment {
-        AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
-        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+    environment{
+        cred = credentials('aws-key')
     }
-
-    stages {
-
-        stage('Checkout') {
-            steps {
-                checkout scmGit(
-                    branches: [[name: '*/main']],
-                    extensions: [],
-                    userRemoteConfigs: [[url: 'https://github.com/DebopriyoRoy/ci-cd-terraform.git']]
-                )
+    stages{
+        stage('checkout'){
+            steps{
+                checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/DebopriyoRoy/ci-cd-terraform.git']])
             }
         }
-
-        stage('Terraform Init') {
-            steps {
+        stage('Init'){
+            steps{
                 sh 'terraform init'
             }
         }
-
-        stage('Terraform Plan') {
-            steps {
+        stage('Plan'){
+            steps{
                 sh 'terraform plan'
             }
         }
-
-        stage('Terraform Apply') {
-            steps {
+        stage('Apply'){
+            steps{
+				timeout(time: 25, unit: 'MINUTES'){
                 sh 'terraform apply -auto-approve'
             }
+          }
+		}  
+        stage('Destroy') {
+            when {
+                expression { currentBuild.result == 'FAILURE' || params.DESTROY == true }
+            }
+            steps {
+                sh 'terraform destroy -auto-approve'
+            }
+        }
+ 
+    }
+ 
+    post {
+        failure {
+            echo 'Pipeline failed — running terraform destroy to clean up any partial infrastructure...'
+            sh 'terraform destroy -auto-approve'
+        }
+        success {
+            echo 'Pipeline completed successfully. All infrastructure is up and connected.'
         }
     }
-}
+ 
+    parameters {
+        booleanParam(
+            name: 'DESTROY',
+            defaultValue: false,
+            description: 'Set to true to manually trigger a full terraform destroy'
+        )
+    }
+}       
+
+
 ```
 
 ------------------------------------------------------------------------
