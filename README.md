@@ -11,11 +11,20 @@ data.
 
 The pipeline provisions the following components:
 
-Jenkins │ ▼ Terraform │ ├── VPC Module │ ├── VPC │ ├── Public Subnets │
-├── Private Subnets │ ├── Internet Gateway │ ├── Route Tables │ └── S3
-VPC Endpoint │ ├── IAM Module │ └── EC2 Role + Instance Profile │ ├──
-EC2 Module │ └── Application Instance │ └── S3 Module └── Secure
-artifact + state storage
+Jenkins │ ▼ Terraform │ 
+├── VPC Module │
+   ├── VPC │ 
+   ├── Public Subnets │
+   ├── Private Subnets │ 
+   ├── Internet Gateway │ 
+   ├── Route Tables │ 
+   └── S3 VPC Endpoint │ 
+├── IAM Module │ 
+    └── EC2 Role + Instance Profile │ 
+├──EC2 Module │ 
+    └── Application Instance 
+│ └── S3 Module 
+└── Secure artifact + state storage
 
 ------------------------------------------------------------------------
 
@@ -74,16 +83,6 @@ overwrites - Allows rollback of CI/CD artifacts
 Cost Optimization: Lifecycle rule automatically: - Moves non-current
 versions to STANDARD_IA after 30 days - Deletes non-current objects
 after 90 days
-
-------------------------------------------------------------------------
-
-# Prerequisites
-
-Configure AWS credentials in Jenkins.
-
-Create two secret text credentials:
-
-aws-access-key-id aws-secret-access-key
 
 ------------------------------------------------------------------------
 
