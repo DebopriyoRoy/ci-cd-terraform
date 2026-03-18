@@ -36,6 +36,7 @@ module "ec2_instance" {
   subnet_id              = module.vpc_inst.public_subnet_ids_list[0]
   vpc_security_group_ids = [module.vpc_inst.ec2_security_group_id]
   iam_instance_profile   = module.iam.instance_profile_name
+  key_name               = "ci-cd-keypair"
 }
 # ==============================================================================
 # S3 MODULE — creates crt-from-jenkins-bucket
