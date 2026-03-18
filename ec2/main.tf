@@ -20,6 +20,12 @@ resource "aws_instance" "ec2_instance" {
   associate_public_ip_address = true
   key_name = var.key_name
 
+  root_block_device {          
+    volume_type           = "gp2"
+    volume_size           = 24    # GB — minimum 24
+    delete_on_termination = true  # cleans up the volume when the instance is destroyed
+  }
+
   tags = {
     Name      = "crtd-from-jenkins"
     Project   = "ci-cd"
