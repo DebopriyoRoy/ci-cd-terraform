@@ -18,6 +18,7 @@ resource "aws_instance" "ec2_instance" {
 
   # Assign a public IP explicitly
   associate_public_ip_address = true
+  key_name = var.key_name
 
   tags = {
     Name      = "crtd-from-jenkins"
