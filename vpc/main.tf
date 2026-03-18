@@ -145,6 +145,30 @@ resource "aws_security_group" "ec2" {
   }
 
   ingress {
+    description = "Jenkins"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = var.allowed_ssh_cidrs
+  }
+
+  ingress {
+    description = "Nexus"
+    from_port   = 8081
+    to_port     = 8081
+    protocol    = "tcp"
+    cidr_blocks = var.allowed_ssh_cidrs
+  }
+  
+  ingress {
+    description = "Sonarqube"
+    from_port   = 9000
+    to_port     = 9000
+    protocol    = "tcp"
+    cidr_blocks = var.allowed_ssh_cidrs
+  }
+
+  ingress {
     description = "HTTP"
     from_port   = 80
     to_port     = 80
