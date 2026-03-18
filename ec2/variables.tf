@@ -20,6 +20,11 @@ variable "vpc_security_group_ids" {
   type        = list(string)
 }
 
+variable "key_name" {
+  description = "ci-cd-keypair"
+  type        = string
+}
+
 variable "iam_instance_profile" {
   description = "Name of the IAM instance profile from the iam module (ec2-from-jenkins)."
   type        = string
