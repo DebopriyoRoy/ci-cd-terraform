@@ -11,20 +11,11 @@ data.
 
 The pipeline provisions the following components:
 
-Jenkins │ ▼ Terraform │ 
-├── VPC Module │
-   ├── VPC │ 
-   ├── Public Subnets │
-   ├── Private Subnets │ 
-   ├── Internet Gateway │ 
-   ├── Route Tables │ 
-   └── S3 VPC Endpoint │ 
-├── IAM Module │ 
-    └── EC2 Role + Instance Profile │ 
-├──EC2 Module │ 
-    └── Application Instance 
-│ └── S3 Module 
-└── Secure artifact + state storage
+Jenkins │ ▼ Terraform │ ├── VPC Module │ ├── VPC │ ├── Public Subnets │
+├── Private Subnets │ ├── Internet Gateway │ ├── Route Tables │ └── S3
+VPC Endpoint │ ├── IAM Module │ └── EC2 Role + Instance Profile │ ├──
+EC2 Module │ └── Application Instance │ └── S3 Module └── Secure
+artifact + state storage
 
 ------------------------------------------------------------------------
 
@@ -86,80 +77,27 @@ after 90 days
 
 ------------------------------------------------------------------------
 
+# Prerequisites
+
+Configure AWS credentials in Jenkins.
+
+Create two secret text credentials:
+
+aws-access-key-id aws-secret-access-key
+
+------------------------------------------------------------------------
+
 # Jenkins Pipeline
 
 ``` groovy
-pipeline{
-    agent any
-    environment{
-        cred = credentials('aws-key')
-    }
-    stages{
-        stage('checkout'){
-            steps{
-                checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/DebopriyoRoy/ci-cd-terraform.git']])
-            }
-        }
-        stage('Init'){
-            steps{
-                sh 'terraform init'
-            }
-        }
-        stage('Plan'){
-            steps{
-                sh 'terraform plan'
-            }
-        }
-        stage('Apply'){
-            steps{
-				timeout(time: 25, unit: 'MINUTES'){
-                sh 'terraform apply -auto-approve'
-            }
-          }
-		}  
-        stage('Destroy') {
-            when {
-                expression { currentBuild.result == 'FAILURE' || params.DESTROY == true }
-            }
-            steps {
-                sh 'terraform destroy -auto-approve'
-            }
-        }
- 
-    }
- 
-    post {
-        failure {
-            echo 'Pipeline failed — running terraform destroy to clean up any partial infrastructure...'
-            sh 'terraform destroy -auto-approve'
-        }
-        success {
-            echo 'Pipeline completed successfully. All infrastructure is up and connected.'
-        }
-    }
- 
-    parameters {
-        booleanParam(
-            name: 'DESTROY',
-            defaultValue: false,
-            description: 'Set to true to manually trigger a full terraform destroy'
-        )
-    }
-}       
-
-
-```
-
--------------------------------------------------------------------------
-# Jenkins Pipeline for deletion of the created resources
-
-``` groovy
-
 pipeline {
     agent any
+
     environment {
-        cred = credentials('aws-key')
+        AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
     }
+
     stages {
 
         stage('Checkout') {
@@ -172,34 +110,26 @@ pipeline {
             }
         }
 
-        stage('Init') {
+        stage('Terraform Init') {
             steps {
                 sh 'terraform init'
             }
         }
 
-        stage('Destroy') {
+        stage('Terraform Plan') {
             steps {
-                timeout(time: 15, unit: 'MINUTES') {
-                    sh 'terraform destroy -auto-approve'
-                }
+                sh 'terraform plan'
             }
         }
 
-    }
-
-    post {
-        success {
-            echo 'All infrastructure destroyed successfully.'
-        }
-        failure {
-            echo 'Destroy failed. Check the AWS console manually for any remaining resources.'
+        stage('Terraform Apply') {
+            steps {
+                sh 'terraform apply -auto-approve'
+            }
         }
     }
 }
-
 ```
-
 
 ------------------------------------------------------------------------
 
