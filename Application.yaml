@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: project-k8s-deployment
+  name: project-aws-eks-deployment
 spec:
   replicas: 3 
   selector:
     matchLabels:
-      app: project-k8s
+      app: aws-eks-deployment
   template:
     metadata:
       labels:
-        app: project-k8s
+        app: aws-eks-deployment
     spec:
       containers:
-      - name: project-k8s
-        image: 557270420072.dkr.ecr.us-east-1.amazonaws.com/cicd-jenkins:${BUILD_NUMBER}
+      - name: aws-eks-deployment
+        image: debopriyoroy/aws-eks-deployment
         ports:
         - containerPort: 8080  
 
@@ -22,16 +22,15 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: project-k8s-service
-  namespace: default
+  name: project-aws-eks-service
   annotations:
-    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"  # ← add this
 spec:
   type: LoadBalancer
-  loadBalancerClass: eks.amazonaws.com/nlb
-  ports:
-  - port: 80
-    targetPort: 8080
-    protocol: TCP
   selector:
-    app: project-k8s
+    app: aws-eks-deployment
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
