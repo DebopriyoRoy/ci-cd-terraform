@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: project-k8s
-        image: 557270420072.dkr.ecr.us-east-1.amazonaws.com/cicd-jenkins:latest
+        image: 557270420072.dkr.ecr.us-east-1.amazonaws.com/cicd-jenkins:${BUILD_NUMBER}
         ports:
         - containerPort: 8080  
 
