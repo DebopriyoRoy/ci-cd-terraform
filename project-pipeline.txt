@@ -12,36 +12,38 @@ pipeline{
     stages{
         stage('Checkout stage'){
             steps{
-                checkout scmGit(branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/DevopsWorking/Super-Project.git']])
+                checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/DebopriyoRoy/ci-cd-terraform.git']])
             }
         }
         stage('sonar test') {
             steps{
                 script{
-                    def mvn = tool 'Maven';
+                    def mvn = tool 'Maven'
                     withSonarQubeEnv(installationName: 'sonarqube-server') {
-                        sh "${mvn}/bin/mvn clean verify sonar:sonar -Dsonar.projectKey=superproject -Dsonar.projectName='superproject'"
+                        //sh "${mvn}/bin/mvn clean verify sonar:sonar -Dsonar.projectKey=finalproject -Dsonar.projectName='finalproject'"
+                          sh "${mvn}/bin/mvn clean verify sonar:sonar -Dsonar.projectKey=trialproject -Dsonar.projectName='trialproject'"
+
                     }
-                }    
-            }     
+                }
+            }
         }
         stage('maven build'){
             steps{
                 sh 'mvn package'
             }
         }
-        stage('nexus test'){
+        stage('Nexus Push'){
             steps{
                 nexusArtifactUploader(
                     nexusVersion: 'nexus3',
                     protocol: 'http',
-                    nexusUrl: '3.145.207.162:8081',
+                    nexusUrl: '10.0.1.53:8081',
                     groupId: 'addressbook',
                     version: '2.0-SNAPSHOT',
                     repository: 'maven-snapshots',
                     credentialsId: 'nexus',
                     artifacts: [
-                        [artifactId: 'SuperProject',
+                        [artifactId: 'trialproject',
                         classifier: '',
                         file: 'target/addressbook-2.0.war',
                         type: 'war']
@@ -49,23 +51,23 @@ pipeline{
                 )
             }
         }
-        stage('Docker build'){
+    stage('Docker build'){
             steps{
-                sh 'docker build -t super-project .'
+                sh 'docker build -t cicd-jenkins .'
             }
         }
-        stage('DockerHub push'){
+    stage('DockerHub push'){
             steps{
-                sh 'aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 381492204839.dkr.ecr.us-east-1.amazonaws.com'
-                sh "docker tag super-project:latest 381492204839.dkr.ecr.us-east-1.amazonaws.com/super-project:latest"
-                sh "docker push 381492204839.dkr.ecr.us-east-1.amazonaws.com/super-project:latest"
-                sh "docker tag super-project:latest 381492204839.dkr.ecr.us-east-1.amazonaws.com/super-project:${BUILD_NUMBER}"
-                sh "docker push 381492204839.dkr.ecr.us-east-1.amazonaws.com/super-project:${BUILD_NUMBER}"
+                sh 'aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 557270420072.dkr.ecr.us-east-1.amazonaws.com'
+                //sh "docker tag cicd-jenkins:latest 557270420072.dkr.ecr.us-east-1.amazonaws.com/cicd-jenkins:latest"
+                //sh "docker push 557270420072.dkr.ecr.us-east-1.amazonaws.com/cicd-jenkins:latest"
+                sh "docker tag cicd-jenkins:latest 557270420072.dkr.ecr.us-east-1.amazonaws.com/cicd-jenkins:${BUILD_NUMBER}"
+                sh "docker push 557270420072.dkr.ecr.us-east-1.amazonaws.com/cicd-jenkins:${BUILD_NUMBER}"
             }
         }
-        stage('Kubernetes deploy'){
+    stage('Kubernetes deploy'){
             steps{
-                sh 'aws eks update-kubeconfig --region us-east-1 --name super-project'
+                sh 'aws eks update-kubeconfig --region us-east-1 --name charming-rock-ant' // (kubernetes cluster name)
                 sh 'kubectl apply -f Application.yaml'
             }
         }
